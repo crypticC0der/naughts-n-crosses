@@ -7,15 +7,17 @@
 #include <unistd.h>
 using namespace std;
 
-const int gridLen =5;
-const int rowLen =5; //number in a row to win
+const int gridLen =4;
+const int rowLen =4; //number in a row to win
 const int brainSize=2;
-int calculations=0;
+int winposA;
+int winposB;
+int calculations=2;
 int gridSize;
 
 enum gameConditions{
 	win=1,
-	loose=-1,
+	loose=-2,
 	draw=0,
 	notover=404
 };
@@ -31,7 +33,14 @@ char fillchars[] =  {' ','o','x','/'};
 
 filler* grid; //yes im well aware im wasting bits here but fuck you, i cant be asked to code a better solution
 
-void drawString(float x, float y, char c) {
+void drawString(float x, float y, char *string) {
+	glRasterPos2f(x,y);
+	for (char* c = string; *c != '\0'; c++) {
+		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *c);  // Updates the position
+	}
+}
+
+void drawChar(float x, float y, char c) {
 	glRasterPos2f(x,y);
 	glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, c);  // Updates the position
 }
@@ -72,7 +81,7 @@ void DrawGrid(){
 	for(i=0;i<gridSize;i++){
 		a = (float)((i%gridLen)<<1)/gridLen -1 + halfSq/2;
 		b = (float)((i/gridLen)<<1)/gridLen -1 + halfSq/2;
-		drawString(a,b,fillchars[grid[i]]);
+		drawChar(a,b,fillchars[grid[i]]);
 		glEnd();
 	}
 }
@@ -95,11 +104,13 @@ bool hasWon(filler* cgrid,filler* win){
 				*win=value;
 				int win=1;
 				int k=1;
+				winposA=i*gridLen +j;
 				//vertical
 				while(i+k<gridLen && i+rowLen<=gridLen){
 					if(cgrid[(i+k)*gridLen +j]==value){
 						win++;
 						k++;
+						winposB=(i+k)*gridLen +j;
 					}else{
 						break;
 					}
@@ -114,6 +125,7 @@ bool hasWon(filler* cgrid,filler* win){
 				while(j+k<gridLen && j+rowLen<=gridLen){
 					if(cgrid[i*gridLen +(j+k)]==value){
 						win++;
+						winposB=(i)*gridLen +(j+k);
 						k++;
 					}else{
 						break;
@@ -129,6 +141,7 @@ bool hasWon(filler* cgrid,filler* win){
 				while(j+k<gridLen && j+rowLen<=gridLen && i+k<gridLen && i+rowLen<=gridLen){
 					if(cgrid[(i+k)*gridLen +(j+k)]==value){
 						win++;
+						winposB=(i+k)*gridLen + (j+k);
 						k++;
 					}else{
 						break;
@@ -144,6 +157,7 @@ bool hasWon(filler* cgrid,filler* win){
 				while(j-k>=0&& j-rowLen>=-1&& i+k<gridLen && i+rowLen<=gridLen){
 					if(cgrid[(i+k)*gridLen +(j-k)]==value){
 						win++;
+						winposB=(i+k)*gridLen + (j-k);
 						k++;
 					}else{
 						break;
@@ -189,7 +203,6 @@ float boardCalc(filler* cgrid,filler side,filler enemy,int distance){
 		return (float)draw* 5/distance;
 	}
 	if (calculations%1000000==0){
-		cout << calculations<<endl;	
 	}
 	calculations+=1;
 
@@ -207,8 +220,9 @@ float boardCalc(filler* cgrid,filler side,filler enemy,int distance){
 				cgrid[i]=space;
 				if(distance==0){
 					return cond*100;
+				}else{
+					return (float)cond * 5/distance;
 				}
-				return (float)cond * 5/distance;
 			}
 
 			//try for enempy moves
@@ -232,7 +246,6 @@ void move(filler* cgrid,filler side, filler enemy){
 	for(int i =0;i<gridSize;i++){
 		if(cgrid[i]==space){
 			cgrid[i]=side;
-			cout << "testing " << i << endl;
 			float out = boardCalc(cgrid,side,enemy,0);
 			if(out>=maxscore){
 				maxpos=i;
@@ -242,10 +255,68 @@ void move(filler* cgrid,filler side, filler enemy){
 		}
 	}
 	cgrid[maxpos]=side;
-	cout << maxpos<<endl;
 }
 
+bool botStart=false;
+bool botTurn=false;
 void run(){
+	filler winner;
+	if(hasWon(grid,&winner)){
+		for(int i =0;i<gridSize;i++){
+			grid[i]=space;
+		}
+
+		if(winner!=space){
+			//draw line showing winning combo
+			cout<<winposA<<","<<winposB<<endl;
+			glColor3f(1,0,0);
+			glBegin(GL_LINES);
+			float halfSq=1/(float)(gridLen);
+			float x,y;
+			x=winposB%gridLen;
+			y=(winposB/gridLen);
+			x/=gridLen;
+			y/=gridLen;
+			x=x*2-1;
+			y=y*2-1;
+			glVertex2d(x+halfSq,y+halfSq);
+			cout << x <<" , " <<y  <<endl;
+
+			x=(winposA%gridLen);
+			y=(winposA/gridLen);
+			x/=gridLen;
+			y/=gridLen;
+			x=x*2-1;
+			y=y*2-1;
+			glVertex2d(x+halfSq,y+halfSq);
+			glEnd();
+			glFlush();
+			cout << x <<" , " <<y  <<endl;
+		}
+		
+		botTurn=true;
+		sleep(2);
+		disInit();
+		botTurn=!botStart;
+		botStart=botTurn;
+	}
+	if (botTurn){
+		move(grid,cross,naught);
+		botTurn=false;
+		DrawGrid();
+		glFlush();
+	}
+}
+
+void clickdy(int button,int state,int x,int y){
+	int i= gridLen * x/300; 
+	int j= gridLen - (1 + gridLen * y/300);
+	if(!botTurn && button==GLUT_LEFT_BUTTON && state==GLUT_DOWN){
+		grid[j*gridLen + i]=naught;
+		botTurn=true;
+		DrawGrid();
+		glFlush();
+	}
 }
 
 int main(int argc, char** argv) {
@@ -256,31 +327,13 @@ int main(int argc, char** argv) {
 	for(int i =0;i<gridSize;i++){
 		cgrid[i]=space;
 	}
-	filler winner;
-	filler me,enemy;
-	me=cross;
-	cgrid[0]=naught;
-	cgrid[1]=cross;
-	cgrid[2]=cross;
-	cgrid[3]=naught;
-	cgrid[4]=cross;
-	cgrid[5]=naught;
-	enemy=naught;
-	while(!hasWon(cgrid,&winner)){
-		cout << "make a move" << endl;
-		move(cgrid,me,enemy);
-		filler t=me;
-		me=enemy;
-		enemy=t;
-	}
 	grid=cgrid;
-	cout << winner<<endl;
-	
 	glutInit(&argc, argv);		// Initialize GLUT
     glutInitWindowSize(300,300);   // Set the window's initial width & height
     glutCreateWindow("Sudoku"); // Create a window with the given title
     glutInitWindowPosition(50, 50); // Position the window's initial top-left corner
     glutDisplayFunc(disInit); // Register display callback handler for window re-paint
+	glutMouseFunc(clickdy);
 	glutIdleFunc(run);
 	glutMainLoop();
 	return 0;
