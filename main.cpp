@@ -93,8 +93,8 @@ void DrawGrid(){
 		glEnd();
 	}
 
-	drawString(0,0.9,(char*)"\'s turn");
-	drawChar(-0.05f,0.9f,fillchars[botTurn + 1],GLUT_BITMAP_HELVETICA_12);
+	drawString(0.1,0.9,(char*)"\'s turn");
+	drawChar(-0.15f,0.9f,fillchars[botTurn + 1],GLUT_BITMAP_HELVETICA_12);
 }
 
 void disInit(){
