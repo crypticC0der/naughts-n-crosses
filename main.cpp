@@ -8,12 +8,12 @@
 #include <unistd.h>
 using namespace std;
 
-const int gridLen =4;
-const int rowLen =4; //number in a row to win
+const int gridLen =5;
+const int rowLen =3; //number in a row to win
 int brainSize=2;
 int winposA;
 int winposB;
-int calculations=2;
+int calculations=0;
 int gridSize;
 bool botStart=false;
 bool botTurn=false;
@@ -93,7 +93,7 @@ void DrawGrid(){
 		glEnd();
 	}
 
-	drawString(0.1,0.9,(char*)"\'s turn");
+	drawString(-0.1,0.9,(char*)"\'s turn");
 	drawChar(-0.15f,0.9f,fillchars[botTurn + 1],GLUT_BITMAP_HELVETICA_12);
 }
 
@@ -262,6 +262,7 @@ void move(filler* cgrid,filler side, filler enemy){
 				maxpos=i;
 				maxscore=out;
 			}
+			cout << 100* i/(float)gridSize <<"\% done" <<endl;
 			cgrid[i]=space;
 		}
 	}
@@ -346,7 +347,7 @@ int main(int argc, char** argv) {
 	grid=cgrid;
 	glutInit(&argc, argv);		// Initialize GLUT
     glutInitWindowSize(300,300);   // Set the window's initial width & height
-    glutCreateWindow("Sudoku"); // Create a window with the given title
+    glutCreateWindow("Naughts & Crosses"); // Create a window with the given title
     glutInitWindowPosition(50, 50); // Position the window's initial top-left corner
     glutDisplayFunc(disInit); // Register display callback handler for window re-paint
 	glutMouseFunc(clickdy);
