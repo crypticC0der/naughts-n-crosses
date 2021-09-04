@@ -7,8 +7,10 @@
 #include <unistd.h>
 using namespace std;
 
-const int gridLen =4;
-const int rowLen =4; //number in a row to win
+const int gridLen =5;
+const int rowLen =5; //number in a row to win
+const int brainSize=2;
+int calculations=0;
 int gridSize;
 
 enum gameConditions{
@@ -72,7 +74,6 @@ void DrawGrid(){
 		b = (float)((i/gridLen)<<1)/gridLen -1 + halfSq/2;
 		drawString(a,b,fillchars[grid[i]]);
 		glEnd();
-		cout << i << ": " << fillchars[grid[i]] << " at " << a << "," << b << endl;
 	}
 }
 
@@ -175,12 +176,22 @@ gameConditions intWon(filler* cgrid,filler side,filler enemy){
 	return notover;
 }
 
-float moveCalc(filler* cgrid,filler side,filler enemy){
+float boardCalc(filler* cgrid,filler side,filler enemy,int distance){
 	//check if game over
 	gameConditions cond = intWon(cgrid,side,enemy);
 	if(cond!=notover){
-		return cond;
+		if (distance==0){
+			return (float)cond* 500;
+		}
+		return (float)cond* 5/distance;
 	}
+	if(distance>brainSize){
+		return (float)draw* 5/distance;
+	}
+	if (calculations%1000000==0){
+		cout << calculations<<endl;	
+	}
+	calculations+=1;
 
 	//continue game
 	int tryCount=0;
@@ -194,14 +205,17 @@ float moveCalc(filler* cgrid,filler side,filler enemy){
 			gameConditions cond = intWon(cgrid,side,enemy);
 			if(cond!=notover){
 				cgrid[i]=space;
-				return cond;
+				if(distance==0){
+					return cond*100;
+				}
+				return (float)cond * 5/distance;
 			}
 
 			//try for enempy moves
 			for(int j =0;j<gridSize;j++){
 				if(cgrid[j]==space){
 					cgrid[j]=side;
-					trySum+=moveCalc(cgrid,side,enemy);
+					trySum+=boardCalc(cgrid,side,enemy,distance+1);
 					tryCount+=1;
 					cgrid[j]=space;
 				}
@@ -219,7 +233,7 @@ void move(filler* cgrid,filler side, filler enemy){
 		if(cgrid[i]==space){
 			cgrid[i]=side;
 			cout << "testing " << i << endl;
-			float out = moveCalc(cgrid,side,enemy);
+			float out = boardCalc(cgrid,side,enemy,0);
 			if(out>=maxscore){
 				maxpos=i;
 				maxscore=out;
@@ -245,6 +259,12 @@ int main(int argc, char** argv) {
 	filler winner;
 	filler me,enemy;
 	me=cross;
+	cgrid[0]=naught;
+	cgrid[1]=cross;
+	cgrid[2]=cross;
+	cgrid[3]=naught;
+	cgrid[4]=cross;
+	cgrid[5]=naught;
 	enemy=naught;
 	while(!hasWon(cgrid,&winner)){
 		cout << "make a move" << endl;
