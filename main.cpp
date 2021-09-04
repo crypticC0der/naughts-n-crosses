@@ -1,3 +1,4 @@
+#include <GL/freeglut_std.h>
 #include <iostream>
 #include <fstream>
 #include <GL/glut.h>
@@ -9,11 +10,13 @@ using namespace std;
 
 const int gridLen =4;
 const int rowLen =4; //number in a row to win
-const int brainSize=2;
+int brainSize=2;
 int winposA;
 int winposB;
 int calculations=2;
 int gridSize;
+bool botStart=false;
+bool botTurn=false;
 
 enum gameConditions{
 	win=1,
@@ -40,9 +43,14 @@ void drawString(float x, float y, char *string) {
 	}
 }
 
+void drawChar(float x, float y, char c,void* bitmap) {
+	glRasterPos2f(x,y);
+	glutBitmapCharacter(bitmap, c);  // Updates the position
+}
+
 void drawChar(float x, float y, char c) {
 	glRasterPos2f(x,y);
-	glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, c);  // Updates the position
+	glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, c);  // Updates the position
 }
 
 void DrawGrid(){
@@ -84,6 +92,9 @@ void DrawGrid(){
 		drawChar(a,b,fillchars[grid[i]]);
 		glEnd();
 	}
+
+	drawString(0,0.9,(char*)"\'s turn");
+	drawChar(-0.05f,0.9f,fillchars[botTurn + 1],GLUT_BITMAP_HELVETICA_12);
 }
 
 void disInit(){
@@ -257,8 +268,6 @@ void move(filler* cgrid,filler side, filler enemy){
 	cgrid[maxpos]=side;
 }
 
-bool botStart=false;
-bool botTurn=false;
 void run(){
 	filler winner;
 	if(hasWon(grid,&winner)){
@@ -303,8 +312,7 @@ void run(){
 	if (botTurn){
 		move(grid,cross,naught);
 		botTurn=false;
-		DrawGrid();
-		glFlush();
+		disInit();
 	}
 }
 
@@ -314,13 +322,21 @@ void clickdy(int button,int state,int x,int y){
 	if(!botTurn && button==GLUT_LEFT_BUTTON && state==GLUT_DOWN){
 		grid[j*gridLen + i]=naught;
 		botTurn=true;
-		DrawGrid();
-		glFlush();
+		disInit();
 	}
 }
 
 int main(int argc, char** argv) {
 	srand (time(NULL));
+
+	if(gridLen<4){
+		brainSize=10;
+	}else if(gridLen>10){
+		brainSize=0;
+	}else if(gridLen>5){
+		brainSize=1;
+	}
+
 	gridSize=gridLen*gridLen;
 	//while(!generateGrid()){}
 	filler* cgrid=new filler[gridSize];
